@@ -1,9 +1,9 @@
 {
-  "name": "week-planner-card",
+  "name": "week-planner-segments-card",
   "version": "1.12.1",
-  "description": "Custom Home Assistant card to display events for a number of days from one or several calendars.",
-  "source": "src/index.js",
-  "module": "dist/week-planner-card.js",
+  "description": "Custom Home Assistant card to display events from calendars with configurable day segments (morning, afternoon, evening, etc.).",
+  "source": "src/index-custom.js",
+  "module": "dist/week-planner-segments-card.js",
   "targets": {
     "module": {
       "includeNodeModules": true,
@@ -12,22 +12,23 @@
   },
   "scripts": {
     "watch": "parcel watch",
-    "build": "parcel build",
-    "build:custom": "parcel build src/index-custom.js --dist-dir dist && cp dist/week-planner-card.js dist/week-planner-card-custom.js"
+    "build": "parcel build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FamousWolf/week-planner-card.git"
+    "url": "git+https://github.com/k-l-sorensen/week-planner-segments-card.git"
   },
   "keywords": [
-    "lovelace"
+    "lovelace",
+    "calendar",
+    "day-segments"
   ],
-  "author": "Rudy Gnodde",
+  "author": "Rudy Gnodde (original), k-l-sorensen (fork)",
   "licence": "MIT",
   "bugs": {
-    "url": "https://github.com/FamousWolf/week-planner-card/issues"
+    "url": "https://github.com/k-l-sorensen/week-planner-segments-card/issues"
   },
-  "homepage": "https://github.com/FamousWolf/week-planner-card",
+  "homepage": "https://github.com/k-l-sorensen/week-planner-segments-card",
   "devDependencies": {
     "@parcel/optimizer-data-url": "^2.12.0",
     "@parcel/transformer-inline-string": "^2.11.0",

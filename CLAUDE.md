@@ -7,24 +7,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Fork**: <https://github.com/k-l-sorensen/week-planner-segments-card>
 - **Upstream**: <https://github.com/FamousWolf/week-planner-card>
 
-## TODO
-
-- [ ] **Rename card to `week-planner-segments-card`** - Update package.json name, custom element registration in index.js/index-custom.js, and build output filenames
-
 ## Project Overview
 
-Week Planner Card is a custom Home Assistant Lovelace card that displays a responsive overview of multiple days with events from one or multiple calendars. It's built using Lit (Web Components) and Luxon (date/time handling). This fork adds day segments functionality.
+Week Planner Segments Card is a custom Home Assistant Lovelace card that displays events from calendars organized into configurable day segments (e.g., Morning, Afternoon, Evening). It's built using Lit (Web Components) and Luxon (date/time handling). This fork extends the original Week Planner Card with day segments functionality.
 
 ## Build Commands
 
 ```bash
-npm install          # Install dependencies
-npm run build        # Build the card (outputs to dist/week-planner-card.js)
-npm run watch        # Watch mode for development
-npm run build:custom # Build custom variant (outputs to dist/, then rename)
+npm install   # Install dependencies
+npm run build # Build the card (outputs to dist/week-planner-segments-card.js)
+npm run watch # Watch mode for development
 ```
 
-The build uses Parcel bundler. Output is a single JavaScript file that Home Assistant loads.
+The build uses Parcel bundler. The main entry point is `src/index-custom.js` which registers the segments card. Output is a single JavaScript file that Home Assistant loads.
 
 ## Architecture
 
@@ -32,7 +27,8 @@ The build uses Parcel bundler. Output is a single JavaScript file that Home Assi
 
 | File | Purpose |
 |------|---------|
-| `index.js` | Entry point - registers custom elements `week-planner-card` and `week-planner-card-editor` |
+| `index-custom.js` | Main entry point - registers `week-planner-segments-card` and `week-planner-segments-card-editor` |
+| `index.js` | Original entry point for base card (retained for reference) |
 | `card.js` | Main card component (`WeekPlannerCard` class) - config parsing, event fetching, rendering |
 | `card.styles.js` | CSS styles for the card (exported as Lit `css` template) |
 | `editor.js` | Visual config editor component (`WeekPlannerCardEditor` class) |
@@ -61,9 +57,10 @@ The build uses Parcel bundler. Output is a single JavaScript file that Home Assi
 ## Testing
 
 No automated tests. Testing requires installing the built JS file in Home Assistant:
-1. Copy `dist/week-planner-card.js` to Home Assistant's `config/www/` folder
+
+1. Copy `dist/week-planner-segments-card.js` to Home Assistant's `config/www/` folder
 2. Add as a resource in Home Assistant dashboard settings
-3. Add the card to a dashboard with `type: custom:week-planner-card`
+3. Add the card to a dashboard with `type: custom:week-planner-segments-card`
 
 ## Key Patterns
 
@@ -89,7 +86,7 @@ Divides each day into configurable time-based segments (e.g., Morning, Afternoon
 ### Configuration
 
 ```yaml
-type: custom:week-planner-card-custom
+type: custom:week-planner-segments-card
 daySegments:
   - name: "Morning"
     start: "06:00"
@@ -134,8 +131,3 @@ Uses CSS Grid for proper legend-to-segment alignment. Grid ensures items in the 
 --segment-border-color: var(--divider-color);
 ```
 
-### Build
-
-```bash
-npm run build:custom  # Outputs dist/week-planner-card-custom.js
-```
