@@ -2,9 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repository
+
+- **Fork**: <https://github.com/k-l-sorensen/week-planner-segments-card>
+- **Upstream**: <https://github.com/FamousWolf/week-planner-card>
+
+## TODO
+
+- [ ] **Rename card to `week-planner-segments-card`** - Update package.json name, custom element registration in index.js/index-custom.js, and build output filenames
+
 ## Project Overview
 
-Week Planner Card is a custom Home Assistant Lovelace card that displays a responsive overview of multiple days with events from one or multiple calendars. It's built using Lit (Web Components) and Luxon (date/time handling).
+Week Planner Card is a custom Home Assistant Lovelace card that displays a responsive overview of multiple days with events from one or multiple calendars. It's built using Lit (Web Components) and Luxon (date/time handling). This fork adds day segments functionality.
 
 ## Build Commands
 
