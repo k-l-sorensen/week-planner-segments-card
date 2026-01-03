@@ -1,20 +1,22 @@
-# Week Planner Card
+# Week Planner Segments Card
 
-![GitHub Release](https://img.shields.io/github/v/release/FamousWolf/week-planner-card)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/FamousWolf/week-planner-card/total)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/y/FamousWolf/week-planner-card)
-![GitHub License](https://img.shields.io/github/license/FamousWolf/week-planner-card)
-[![Static Badge](https://img.shields.io/badge/-buy_me_a_tea-gray?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/rudygnodde)
+![GitHub Release](https://img.shields.io/github/v/release/k-l-sorensen/week-planner-segments-card)
+![GitHub License](https://img.shields.io/github/license/k-l-sorensen/week-planner-segments-card)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/y/k-l-sorensen/week-planner-segments-card)
 
-Custom Home Assistant card displaying a responsive overview of multiple days with events from one or multiple calendars
+> **🔀 This is a fork of [Week Planner Card](https://github.com/FamousWolf/week-planner-card) by [FamousWolf](https://github.com/FamousWolf)**
+>
+> This fork adds **Day Segments** functionality as a feature proposal. All credit for the original Week Planner Card goes to [FamousWolf](https://github.com/FamousWolf) and contributors. If you find this card useful, please consider [buying them a coffee](https://www.buymeacoffee.com/rudygnodde) ☕
+
+---
+
+Custom Home Assistant card displaying a responsive overview of multiple days with events from one or multiple calendars. **This fork adds the ability to divide each day into time-based segments** (e.g., Morning, Afternoon, Evening).
 
 ![Example Week Planner Cards](examples/card.png)
 
 ## Table of Content
 
 - [Installation](#installation)
-  - [HACS (Recommended)](#hacs-recommended)
-  - [Manual](#manual)
 - [Configuration](#configuration)
   - [Main options](#main-options)
   - [Calendars](#calendars)
@@ -26,30 +28,29 @@ Custom Home Assistant card displaying a responsive overview of multiple days wit
 
 ## Installation
 
-### HACS (Recommended)
+### Manual Installation
 
-1. Make sure [HACS](https://hacs.xyz) is installed and working.
-2. Search for `week-planner-card`.
-3. Download and install using HACS.
-
-### Manual
-
-1. Download and copy `week-planner-card.js` from the [latest release](https://github.com/FamousWolf/week-planner-card/releases/latest) into your `config/www` directory.
+1. Download `week-planner-segments-card.js` from the [latest release](https://github.com/k-l-sorensen/week-planner-segments-card/releases/latest) into your Home Assistant `config/www` directory.
 2. Add the resource reference to Home Assistant configuration using one of these methods:
-  - **Edit your configuration.yaml**
-    Add:
-    ```yaml
-    resources:
-      - url: /local/week-planner-card.js?version=1.12.1
-    type: module
-    ```
-  - **Using the graphical editor**
-    1. Make sure advanced mode is enabled in your user profile
-    2. Navigate to "Settings" -> "Dashboards".
-    3. Click on the 3 vertical dots in the top right corner and select "Resources".
-    4. Click on the "Add resource" button in the bottom right corner.
-    5. Enter URL `/local/week-planner-card.js` and select type "JavaScript Module".
-    6. Restart Home Assistant.
+   - **Edit your configuration.yaml**
+     Add:
+
+     ```yaml
+     lovelace:
+       resources:
+         - url: /local/week-planner-segments-card.js
+           type: module
+     ```
+
+   - **Using the graphical editor**
+     1. Make sure advanced mode is enabled in your user profile
+     2. Navigate to "Settings" -> "Dashboards".
+     3. Click on the 3 vertical dots in the top right corner and select "Resources".
+     4. Click on the "Add resource" button in the bottom right corner.
+     5. Enter URL `/local/week-planner-segments-card.js` and select type "JavaScript Module".
+     6. Restart Home Assistant.
+
+> **Note:** For the original Week Planner Card without day segments, see [FamousWolf/week-planner-card](https://github.com/FamousWolf/week-planner-card) which is also available via HACS.
 
 
 ## Configuration
@@ -184,7 +185,7 @@ Segments are automatically sorted by start time. Each segment ends when the next
 **Example configuration:**
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar
 daySegments:
@@ -275,7 +276,7 @@ When using day segments, you can style the segment labels and borders using thes
 **Example styling with card_mod:**
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar
 daySegments:
@@ -299,7 +300,7 @@ card_mod:
 ### Minimal
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
 ```
@@ -307,7 +308,7 @@ calendars:
 ### Extended
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
     color: '#e6c229'
@@ -332,7 +333,7 @@ texts:
 ### Starting on Sunday
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
     color: '#e6c229'
@@ -348,7 +349,7 @@ texts:
 ### Past events transparent with card_mod
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
     color: '#e6c229'
@@ -366,7 +367,7 @@ card_mod:
 This will style events with `Word1` as part of the title or `Word2` as the exact title with a red background.
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
   - color: #e6c229
@@ -381,7 +382,7 @@ card_mod:
 ### Show entire current month
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.my_calendar_1
 days: month
@@ -391,7 +392,7 @@ startingDay: month
 ### Show month with each day
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - calendar.my_calendar_1
 dayFormat: '''<span class="number">''d''</span> <span class="month">''MMMM''</span>'''
@@ -400,7 +401,7 @@ dayFormat: '''<span class="number">''d''</span> <span class="month">''MMMM''</sp
 ### Day segments with weather
 
 ```yaml
-type: custom:week-planner-card
+type: custom:week-planner-segments-card
 calendars:
   - entity: calendar.family
     name: Family
