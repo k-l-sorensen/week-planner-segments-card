@@ -4,12 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository
 
-- **Fork**: <https://github.com/k-l-sorensen/week-planner-segments-card>
+> **This is a fork of [Week Planner Card](https://github.com/FamousWolf/week-planner-card) by [FamousWolf](https://github.com/FamousWolf)**
+>
+> All credit for the original card goes to FamousWolf and contributors. This fork adds Day Segments functionality as a feature proposal.
+
+- **This Fork**: <https://github.com/k-l-sorensen/week-planner-segments-card>
 - **Upstream**: <https://github.com/FamousWolf/week-planner-card>
+- **License**: MIT (inherited from upstream)
 
 ## Project Overview
 
-Week Planner Segments Card is a custom Home Assistant Lovelace card that displays events from calendars organized into configurable day segments (e.g., Morning, Afternoon, Evening). It's built using Lit (Web Components) and Luxon (date/time handling). This fork extends the original Week Planner Card with day segments functionality.
+Week Planner Segments Card is a custom Home Assistant Lovelace card that displays events from calendars organized into configurable day segments (e.g., Morning, Afternoon, Evening). It's built using Lit (Web Components) and Luxon (date/time handling).
 
 ## Build Commands
 
@@ -20,6 +25,12 @@ npm run watch # Watch mode for development
 ```
 
 The build uses Parcel bundler. The main entry point is `src/index-custom.js` which registers the segments card. Output is a single JavaScript file that Home Assistant loads.
+
+## Releasing
+
+1. Build the card: `npm run build`
+2. Create a GitHub release with tag `vX.Y.Z`
+3. Attach `dist/week-planner-segments-card.js` to the release
 
 ## Architecture
 
@@ -65,15 +76,18 @@ No automated tests. Testing requires installing the built JS file in Home Assist
 ## Key Patterns
 
 ### Configuration Parsing
+
 Config options use nullish coalescing for defaults: `config.option ?? defaultValue`
-Complex configs (weather, calendars) use helper methods like `_getWeatherConfig()`
+Complex configs (weather, calendars, daySegments) use helper methods like `_getWeatherConfig()`, `_getDaySegmentsConfig()`
 
 ### Event Filtering
+
 - `filter` config: Regex matched against event title - removes matching events
 - `filterText` config: Regex replaced in event title text
 - Applied at both global and per-calendar levels
 
 ### Responsive Layout
+
 Days use calculated widths: `calc((100% - gaps) / columns)`
 Column count changes via CSS container queries at 1920px, 1280px, 1024px, 640px breakpoints
 
@@ -85,29 +99,35 @@ Divides each day into configurable time-based segments (e.g., Morning, Afternoon
 
 ### Configuration
 
+Segments only require `name` and `start` time. End times are automatically calculated from the next segment's start (last segment ends at midnight). Segments are auto-sorted by start time.
+
 ```yaml
 type: custom:week-planner-segments-card
 daySegments:
   - name: "Morning"
     start: "06:00"
-  - name: "Early Afternoon"
+  - name: "Afternoon"
     start: "12:00"
-  - name: "Late Afternoon"
-    start: "15:00"
   - name: "Evening"
     start: "18:00"
 calendars:
   - entity: calendar.work
 ```
 
-Segments are automatically sorted by start time. Each segment ends when the next one begins (the last segment ends at midnight).
+### Visual Editor Support
+
+Day segments can be configured via the Home Assistant visual editor:
+
+- Expansion panel "Day Segments" in editor.js
+- Add/remove segments with buttons
+- Each segment has name and start time fields
 
 ### Key Behaviors
 
 - **Full-day events** → Dedicated "All Day" segment at the top
 - **Segment sizing** → Equal height across all days (determined by segment with most events)
 - **Spanning events** → Placed in starting segment only
-- **Events outside segments** → Placed in first segment
+- **Events before first segment** → Placed in first segment
 - **Mobile (<640px)** → Legend hidden, segments flow naturally
 
 ### Implementation
@@ -115,17 +135,20 @@ Segments are automatically sorted by start time. Each segment ends when the next
 Uses CSS Grid for proper legend-to-segment alignment. Grid ensures items in the same row share height automatically.
 
 **Key methods in `card.js`:**
-- `_getDaySegmentsConfig()` - Parses and validates config
+
+- `_getDaySegmentsConfig()` - Parses config, validates, sorts by start time, calculates end times
 - `_getEventSegmentIndex()` - Determines segment for an event
 - `_groupEventsBySegment()` - Groups events by segment
 - `_renderDaysWithGrid()` - Renders the CSS Grid layout
 - `_renderDayHeader()` - Renders date + weather header
 - `_calculateSegmentMaxEvents()` - Calculates max events per segment
 
-**CSS Variables:**
-```css
---segment-event-height: 50px;   /* Height per event slot */
---segment-legend-width: 80px;   /* Width of side legend */
---segment-border-color: var(--divider-color);
-```
+### CSS Variables
 
+```css
+--segment-label-color: var(--primary-text-color);  /* Legend text color */
+--segment-border-color: var(--primary-text-color); /* Border line color */
+--segment-border-width: 1px;                       /* Border line width */
+--segment-legend-width: 80px;                      /* Width of side legend */
+--segment-event-height: 50px;                      /* Height per event slot */
+```
