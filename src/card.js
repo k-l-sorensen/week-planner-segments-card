@@ -266,17 +266,16 @@ export class WeekPlannerCard extends LitElement {
             return [];
         }
 
-        return daySegmentsConfiguration.map((segment, index) => {
-            if (!segment.name || !segment.start || !segment.end) {
-                console.warn('Week Planner Card: Invalid day segment configuration at index ' + index + ', missing required fields (name, start, end)', segment);
+        // First pass: validate and parse segments
+        const parsedSegments = daySegmentsConfiguration.map((segment, index) => {
+            if (!segment.name || !segment.start) {
+                console.warn('Week Planner Card: Invalid day segment configuration at index ' + index + ', missing required fields (name, start)', segment);
                 return null;
             }
 
-            // Parse time strings to minutes from midnight for comparison
             const startMinutes = this._parseTimeToMinutes(segment.start);
-            const endMinutes = this._parseTimeToMinutes(segment.end);
 
-            if (startMinutes === null || endMinutes === null) {
+            if (startMinutes === null) {
                 console.warn('Week Planner Card: Invalid time format in day segment at index ' + index + ', expected HH:mm format', segment);
                 return null;
             }
@@ -284,11 +283,23 @@ export class WeekPlannerCard extends LitElement {
             return {
                 name: segment.name,
                 start: segment.start,
-                end: segment.end,
-                startMinutes: startMinutes,
-                endMinutes: endMinutes
+                startMinutes: startMinutes
             };
         }).filter(Boolean);
+
+        // Sort segments by start time
+        parsedSegments.sort((a, b) => a.startMinutes - b.startMinutes);
+
+        // Second pass: calculate end times from next segment's start
+        return parsedSegments.map((segment, index) => {
+            const nextSegment = parsedSegments[index + 1];
+            const endMinutes = nextSegment ? nextSegment.startMinutes : 24 * 60; // Midnight for last segment
+
+            return {
+                ...segment,
+                endMinutes: endMinutes
+            };
+        });
     }
 
     /**

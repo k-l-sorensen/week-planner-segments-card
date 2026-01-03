@@ -312,15 +312,15 @@ export default css`
         justify-content: flex-start;
         padding: 5px 0 5px 5px;
         font-size: 0.8em;
-        color: var(--secondary-text-color, #aaaaaa);
-        border-bottom: 1px solid var(--segment-border-color, var(--divider-color, rgba(255,255,255,0.2)));
+        color: var(--segment-label-color, var(--primary-text-color));
+        border-bottom: var(--segment-border-width, 1px) solid var(--segment-border-color, var(--primary-text-color));
         /* Minimum height based on max events - grid row determines actual height */
         min-height: calc(var(--segment-event-height, 50px) * var(--segment-height, 1));
     }
 
     /* Segment content cells */
     .container .days-grid-container .segment {
-        border-bottom: 1px solid var(--segment-border-color, var(--divider-color, rgba(255,255,255,0.2)));
+        border-bottom: var(--segment-border-width, 1px) solid var(--segment-border-color, var(--primary-text-color));
         /* Minimum height based on max events */
         min-height: calc(var(--segment-event-height, 50px) * var(--segment-height, 1));
         overflow: hidden;

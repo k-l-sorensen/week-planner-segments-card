@@ -120,6 +120,38 @@ export class WeekPlannerCardEditor extends LitElement {
                     `
                 )}
                 ${this.addExpansionPanel(
+                    'Day Segments',
+                    html`
+                        <p>Divide each day into time-based segments (e.g., Morning, Afternoon, Evening)</p>
+                        ${this.getConfigValue('daySegments', []).map((segment, index) => {
+                            return html`
+                                ${this.addExpansionPanel(
+                                    `Segment: ${segment.name ?? 'Unnamed'}`,
+                                    html`
+                                        ${this.addTextField('daySegments.' + index + '.name', 'Name')}
+                                        ${this.addTextField('daySegments.' + index + '.start', 'Start time (HH:mm)')}
+                                        ${this.addButton('Remove segment', 'mdi:trash-can', () => {
+                                            const config = JSON.parse(JSON.stringify(this._config));
+                                            if (config.daySegments.length === 1) {
+                                                config.daySegments = [];
+                                            } else {
+                                                delete config.daySegments[index];
+                                                config.daySegments = config.daySegments.filter(Boolean);
+                                            }
+                                            this._config = config;
+                                            this.dispatchConfigChangedEvent();
+                                        })}
+                                    `
+                                )}
+                            `
+                        })}
+                        ${this.addButton('Add segment', 'mdi:plus', () => {
+                            const index = this.getConfigValue('daySegments', []).length;
+                            this.setConfigValue('daySegments.' + index, {});
+                        })}
+                    `
+                )}
+                ${this.addExpansionPanel(
                     'Events',
                     html`
                         ${this.addTextField('maxEvents', 'Maximum number of events (0 is no maximum)', 'number', 0)}

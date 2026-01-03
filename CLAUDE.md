@@ -90,19 +90,17 @@ type: custom:week-planner-segments-card
 daySegments:
   - name: "Morning"
     start: "06:00"
-    end: "12:00"
   - name: "Early Afternoon"
     start: "12:00"
-    end: "15:00"
   - name: "Late Afternoon"
     start: "15:00"
-    end: "18:00"
   - name: "Evening"
     start: "18:00"
-    end: "24:00"
 calendars:
   - entity: calendar.work
 ```
+
+Segments are automatically sorted by start time. Each segment ends when the next one begins (the last segment ends at midnight).
 
 ### Key Behaviors
 

@@ -20,6 +20,7 @@ Custom Home Assistant card displaying a responsive overview of multiple days wit
   - [Calendars](#calendars)
   - [Texts](#texts)
   - [Weather](#weather)
+  - [Day Segments](#day-segments)
 - [Custom styling using cardmod](#custom-styling-using-cardmod)
 - [Examples](#examples)
 
@@ -92,6 +93,7 @@ Custom Home Assistant card displaying a responsive overview of multiple days wit
 | `legendToggle`           | boolean          | false                                              | `false` \| `true`                                                                                                                           | Toggle calendars by clicking on the legend                                             | 1.11.0  |
 | `columns`                | object           | optional                                           | See [Columns](#columns)                                                                                                                     | Configuration to override the number of columns                                        | 1.11.0  |
 | `showNavigation`         | boolean          | false                                              | `false` \| `true`                                                                                                                           | Show navigational arrows to traverse additional dates on calendar.                     | 1.12.0  |
+| `daySegments`            | object list      | optional                                           | See [Day Segments](#day-segments)                                                                                                           | Divide each day into time-based segments                                               | 1.13.0  |
 
 ### Calendars
 
@@ -161,6 +163,39 @@ replaceTitleText:
 
 This will replace the text "Search text" with "Replace text" and "Foo" with "Bar". This option is not available in the visual editor.
 
+### Day Segments
+
+Divide each day into configurable time-based segments (e.g., Morning, Afternoon, Evening). Events are grouped by their start time into the appropriate segment, with a side legend showing segment labels.
+
+| Name    | Type   | Default      | Supported options | Description                           | Version |
+|---------|--------|--------------|-------------------|---------------------------------------|---------|
+| `name`  | string | **Required** | Any text          | Name of the segment (shown in legend) | 1.13.0  |
+| `start` | string | **Required** | `HH:mm` format    | Start time of the segment             | 1.13.0  |
+
+Segments are automatically sorted by start time. Each segment ends when the next one begins (the last segment ends at midnight).
+
+**Key behaviors:**
+
+- **Full-day events** are shown in a dedicated "All Day" row at the top
+- **Events before the first segment** are placed in the first segment
+- **Events spanning multiple segments** are placed in their starting segment
+- **Mobile view (<640px)** hides the legend and segments flow naturally
+
+**Example configuration:**
+
+```yaml
+type: custom:week-planner-card
+calendars:
+  - entity: calendar.my_calendar
+daySegments:
+  - name: "Morning"
+    start: "06:00"
+  - name: "Afternoon"
+    start: "12:00"
+  - name: "Evening"
+    start: "18:00"
+```
+
 ## Custom styling using cardmod
 
 Like with most cards, you can add custom styling to this card using [card_mod](https://github.com/thomasloven/lovelace-card-mod). To make it easier to add custom styles to days and/or events, there are several classes that days and events can have. Additionally, there are data attributes you can use in CSS selectors.
@@ -214,6 +249,50 @@ Like with most cards, you can add custom styling to this card using [card_mod](h
 | `data-start-minute`        | The event start minute                                          | 1.9.0   |
 | `data-end-hour`            | The event end hour                                              | 1.9.0   |
 | `data-end-minute`          | The event end minute                                            | 1.9.0   |
+
+### Segment styling
+
+When using day segments, you can style the segment labels and borders using these CSS selectors and variables.
+
+**CSS selectors:**
+
+| Selector                | Description                 | Version |
+|-------------------------|-----------------------------|---------|
+| `.segment-label`        | Segment label in the legend | 1.13.0  |
+| `.segment-label.allday` | The "All Day" segment label | 1.13.0  |
+| `.segment`              | Segment content area        | 1.13.0  |
+
+**CSS variables:**
+
+| Variable                  | Default                  | Description                | Version |
+|---------------------------|--------------------------|----------------------------|---------|
+| `--segment-label-color`   | `--primary-text-color`   | Legend text color          | 1.13.0  |
+| `--segment-border-color`  | `--primary-text-color`   | Border line color          | 1.13.0  |
+| `--segment-border-width`  | `1px`                    | Border line width          | 1.13.0  |
+| `--segment-legend-width`  | `80px`                   | Legend column width        | 1.13.0  |
+| `--segment-event-height`  | `50px`                   | Height per event slot      | 1.13.0  |
+
+**Example styling with card_mod:**
+
+```yaml
+type: custom:week-planner-card
+calendars:
+  - entity: calendar.my_calendar
+daySegments:
+  - name: "Morning"
+    start: "06:00"
+  - name: "Afternoon"
+    start: "12:00"
+card_mod:
+  style: |
+    ha-card {
+      --segment-border-width: 2px;
+      --segment-legend-width: 100px;
+    }
+    .segment-label {
+      font-weight: bold;
+    }
+```
 
 ## Examples
 
@@ -316,4 +395,32 @@ type: custom:week-planner-card
 calendars:
   - calendar.my_calendar_1
 dayFormat: '''<span class="number">''d''</span> <span class="month">''MMMM''</span>'''
+```
+
+### Day segments with weather
+
+```yaml
+type: custom:week-planner-card
+calendars:
+  - entity: calendar.family
+    name: Family
+    color: orchid
+  - entity: calendar.work
+    name: Work
+    color: steelblue
+days: 5
+startingDay: today
+showNavigation: true
+weather:
+  entity: weather.home
+  showCondition: true
+  showTemperature: true
+showLegend: true
+daySegments:
+  - name: "Morning"
+    start: "06:00"
+  - name: "Afternoon"
+    start: "12:00"
+  - name: "Evening"
+    start: "18:00"
 ```
