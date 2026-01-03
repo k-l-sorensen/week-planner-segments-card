@@ -126,7 +126,8 @@ export class WeekPlannerCard extends LitElement {
             hideDaysWithoutEvents: false,
             hideTodayWithoutEvents: false,
             combineSimilarEvents: false,
-            showLegend: false
+            showLegend: false,
+            daySegments: []
         };
     }
 
@@ -141,7 +142,8 @@ export class WeekPlannerCard extends LitElement {
             _config: { type: Object },
             _error: { type: String },
             _currentEventDetails: { type: Object },
-            _hideCalendars: { type: Array }
+            _hideCalendars: { type: Array },
+            _segmentMaxEvents: { type: Object }
         }
     }
 
@@ -191,6 +193,11 @@ export class WeekPlannerCard extends LitElement {
         this._columns = config.columns ?? {};
         this._maxEvents = config.maxEvents ?? false;
         this._maxDayEvents = config.maxDayEvents ?? false;
+        this._daySegments = this._getDaySegmentsConfig(config.daySegments);
+        this._segmentMaxEvents = { [-1]: 1 };  // Initialize with default values
+        this._daySegments.forEach((_, index) => {
+            this._segmentMaxEvents[index] = 1;
+        });
         this._hideCalendars = [];
         if (config.locale) {
             LuxonSettings.defaultLocale = config.locale;
@@ -246,6 +253,125 @@ export class WeekPlannerCard extends LitElement {
         }
 
         return configuration;
+    }
+
+    /**
+     * Parse and validate daySegments configuration
+     *
+     * @param {Array} daySegmentsConfiguration
+     * @returns {Array}
+     */
+    _getDaySegmentsConfig(daySegmentsConfiguration) {
+        if (!Array.isArray(daySegmentsConfiguration) || daySegmentsConfiguration.length === 0) {
+            return [];
+        }
+
+        return daySegmentsConfiguration.map((segment, index) => {
+            if (!segment.name || !segment.start || !segment.end) {
+                console.warn('Week Planner Card: Invalid day segment configuration at index ' + index + ', missing required fields (name, start, end)', segment);
+                return null;
+            }
+
+            // Parse time strings to minutes from midnight for comparison
+            const startMinutes = this._parseTimeToMinutes(segment.start);
+            const endMinutes = this._parseTimeToMinutes(segment.end);
+
+            if (startMinutes === null || endMinutes === null) {
+                console.warn('Week Planner Card: Invalid time format in day segment at index ' + index + ', expected HH:mm format', segment);
+                return null;
+            }
+
+            return {
+                name: segment.name,
+                start: segment.start,
+                end: segment.end,
+                startMinutes: startMinutes,
+                endMinutes: endMinutes
+            };
+        }).filter(Boolean);
+    }
+
+    /**
+     * Parse time string (HH:mm) to minutes from midnight
+     *
+     * @param {string} timeString
+     * @returns {number|null}
+     */
+    _parseTimeToMinutes(timeString) {
+        if (typeof timeString !== 'string') {
+            return null;
+        }
+        const match = timeString.match(/^(\d{1,2}):(\d{2})$/);
+        if (!match) {
+            return null;
+        }
+        const hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        if (hours < 0 || hours > 24 || minutes < 0 || minutes > 59) {
+            return null;
+        }
+        return hours * 60 + minutes;
+    }
+
+    /**
+     * Get the segment index for an event based on its start time
+     * Returns -1 for full-day events (All Day segment)
+     * Returns 0 for events outside all segments (placed in first segment)
+     *
+     * @param {Object} event
+     * @returns {number}
+     */
+    _getEventSegmentIndex(event) {
+        // Full-day events go to the "All Day" segment (index -1)
+        if (event.fullDay) {
+            return -1;
+        }
+
+        // Get event start time in minutes from midnight
+        const eventHour = parseInt(event.start.toFormat('H'), 10);
+        const eventMinute = parseInt(event.start.toFormat('mm'), 10);
+        const eventMinutes = eventHour * 60 + eventMinute;
+
+        // Find matching segment
+        for (let i = 0; i < this._daySegments.length; i++) {
+            const segment = this._daySegments[i];
+            if (eventMinutes >= segment.startMinutes && eventMinutes < segment.endMinutes) {
+                return i;
+            }
+        }
+
+        // Event outside all segments - place in first segment
+        return 0;
+    }
+
+    /**
+     * Group events by segment index
+     *
+     * @param {Array} events
+     * @returns {Object} Object with segment index as key and array of events as value
+     */
+    _groupEventsBySegment(events) {
+        const grouped = {
+            [-1]: [] // All Day segment
+        };
+
+        // Initialize empty arrays for each segment
+        this._daySegments.forEach((segment, index) => {
+            grouped[index] = [];
+        });
+
+        // Group events
+        events.forEach(event => {
+            const segmentIndex = this._getEventSegmentIndex(event);
+            if (grouped[segmentIndex]) {
+                grouped[segmentIndex].push(event);
+            } else {
+                // Fallback to first segment if something goes wrong
+                grouped[0].push(event);
+            }
+        });
+
+        return grouped;
     }
 
     /**
@@ -375,6 +501,140 @@ export class WeekPlannerCard extends LitElement {
             return html``;
         }
 
+        // If segments are configured, use grid-based layout for alignment
+        if (this._daySegments.length > 0) {
+            return this._renderDaysWithGrid();
+        }
+
+        return this._renderDayColumns();
+    }
+
+    /**
+     * Render days with CSS Grid layout for proper segment alignment
+     * Grid ensures legend labels align perfectly with day segment rows
+     *
+     * @returns {Object}
+     */
+    _renderDaysWithGrid() {
+        // Filter visible days
+        const visibleDays = this._days.filter(day =>
+            !(this._hideDaysWithoutEvents && day.events.length === 0 &&
+              (this._hideTodayWithoutEvents || !this._isToday(day.date)))
+        );
+
+        if (visibleDays.length === 0) {
+            return html``;
+        }
+
+        // Pre-compute grouped events for all visible days (performance optimization)
+        const groupedEventsByDay = visibleDays.map(day => {
+            const dayEvents = this._getDayEvents(day);
+            return this._groupEventsBySegment(dayEvents);
+        });
+
+        // Total rows: 1 header + 1 allday + N segments
+        const totalRows = 2 + this._daySegments.length;
+
+        return html`
+            <div class="days-grid-container" style="--day-count: ${visibleDays.length}; --segment-count: ${totalRows}">
+                <!-- Row 1: Headers (empty legend cell + day headers) -->
+                <div class="grid-cell legend-header" style="grid-row: 1; grid-column: 1"></div>
+                ${visibleDays.map((day, index) => this._renderDayHeader(day, index + 2))}
+
+                <!-- Row 2: All Day segment -->
+                <div class="grid-cell segment-label allday" style="grid-row: 2; grid-column: 1; --segment-height: ${this._segmentMaxEvents[-1] || 1}">
+                    ${this._language.fullDay ?? 'All Day'}
+                </div>
+                ${visibleDays.map((day, index) => html`
+                    <div class="grid-cell segment allday"
+                         style="grid-row: 2; grid-column: ${index + 2}; --segment-height: ${this._segmentMaxEvents[-1] || 1}">
+                        ${groupedEventsByDay[index][-1]?.map(event => this._renderEvent(event)) || ''}
+                    </div>
+                `)}
+
+                <!-- Rows 3+: Named segments -->
+                ${this._daySegments.map((segment, segmentIndex) => html`
+                    <div class="grid-cell segment-label"
+                         style="grid-row: ${segmentIndex + 3}; grid-column: 1; --segment-height: ${this._segmentMaxEvents[segmentIndex] || 1}">
+                        ${segment.name}
+                    </div>
+                    ${visibleDays.map((day, dayIndex) => html`
+                        <div class="grid-cell segment"
+                             data-segment="${segmentIndex}"
+                             style="grid-row: ${segmentIndex + 3}; grid-column: ${dayIndex + 2}; --segment-height: ${this._segmentMaxEvents[segmentIndex] || 1}">
+                            ${groupedEventsByDay[dayIndex][segmentIndex]?.map(event => this._renderEvent(event)) || ''}
+                        </div>
+                    `)}
+                `)}
+            </div>
+        `;
+    }
+
+    /**
+     * Render day header (date + weather) for grid layout
+     *
+     * @param {Object} day
+     * @param {number} columnIndex - Grid column number (starting from 2)
+     * @returns {Object}
+     */
+    _renderDayHeader(day, columnIndex) {
+        return html`
+            <div class="grid-cell day-header ${day.class}"
+                 data-date="${day.date.day}"
+                 data-weekday="${day.date.weekday}"
+                 data-month="${day.date.month}"
+                 data-year="${day.date.year}"
+                 data-week="${day.date.weekNumber}"
+                 style="grid-row: 1; grid-column: ${columnIndex}">
+                <div class="date">
+                    ${this._dayFormat ?
+                        unsafeHTML(day.date.toFormat(this._dayFormat)) :
+                        html`
+                            <span class="number">${day.date.day}</span>
+                            <span class="text">${this._getWeekDayText(day.date)}</span>
+                        `
+                    }
+                </div>
+                ${day.weather ?
+                    html`
+                        <div class="weather" @click="${this._handleWeatherClick}">
+                            ${this._weather?.showTemperature || this._weather?.showLowTemperature ?
+                                html`
+                                    <div class="temperature">
+                                        ${this._weather?.showTemperature ?
+                                            html`<span class="high">${day.weather.temperature}</span>` :
+                                            ''
+                                        }
+                                        ${this._weather?.showLowTemperature ?
+                                            html`<span class="low">${day.weather.templow}</span>` :
+                                            ''
+                                        }
+                                    </div>
+                                ` :
+                                ''
+                            }
+                            ${this._weather?.showCondition ?
+                                html`
+                                    <div class="icon">
+                                        <img src="${day.weather.icon}" alt="${day.weather.condition}">
+                                    </div>
+                                ` :
+                                ''
+                            }
+                        </div>
+                    ` :
+                    ''
+                }
+            </div>
+        `;
+    }
+
+    /**
+     * Render day columns (extracted for reuse with/without segment legend)
+     *
+     * @returns {Object}
+     */
+    _renderDayColumns() {
         return html`
             ${this._days.map((day) => {
                 if (this._hideDaysWithoutEvents && day.events.length === 0 && (this._hideTodayWithoutEvents || !this._isToday(day.date))) {
@@ -435,6 +695,48 @@ export class WeekPlannerCard extends LitElement {
     }
 
     _renderEvents(day) {
+        const dayEvents = this._getDayEvents(day);
+
+        if (dayEvents.length === 0) {
+            // When using segments, show empty segments rather than "no events"
+            if (this._daySegments.length > 0) {
+                return this._renderEventsWithSegments([]);
+            }
+            return this._renderNoEvents();
+        }
+
+        let moreEvents = false;
+        if (this._maxDayEvents > 0 && dayEvents.length > this._maxDayEvents) {
+            dayEvents.splice(this._maxDayEvents);
+            moreEvents = true;
+        }
+
+        // Use segment-based rendering if daySegments is configured
+        if (this._daySegments.length > 0) {
+            return this._renderEventsWithSegments(dayEvents);
+        }
+
+        // Original flat list rendering
+        return html`
+            ${dayEvents.map((event) => this._renderEvent(event))}
+            ${moreEvents ?
+                html`
+                    <div class="more">
+                        ${this._language.moreEvents}
+                    </div>
+                ` :
+                ''
+            }
+        `;
+    }
+
+    /**
+     * Get filtered events for a day
+     *
+     * @param {Object} day
+     * @returns {Array}
+     */
+    _getDayEvents(day) {
         const dayEvents = [];
         day.events.map((eventKey) => {
             if (!this._calendarEvents[eventKey]) {
@@ -465,103 +767,117 @@ export class WeekPlannerCard extends LitElement {
 
             dayEvents.push(event);
         });
+        return dayEvents;
+    }
 
-        if (dayEvents.length === 0) {
-            return this._renderNoEvents();
-        }
-
-        let moreEvents = false;
-        if (this._maxDayEvents > 0 && dayEvents.length > this._maxDayEvents) {
-            dayEvents.splice(this._maxDayEvents);
-            moreEvents = true;
-        }
+    /**
+     * Render events grouped by segments
+     *
+     * @param {Array} dayEvents
+     * @returns {Object}
+     */
+    _renderEventsWithSegments(dayEvents) {
+        const groupedEvents = this._groupEventsBySegment(dayEvents);
 
         return html`
-            ${dayEvents.map((event) => {
-                const doneColors = [event.colors[0]];
-                return html`
-                    <div
-                        class="event ${event.class}"
-                        data-entity="${event.calendars[0]}"
-                        data-additional-entities="${event.calendars.join(',')}"
-                        data-summary="${event.summary}"
-                        data-location="${event.location ?? ''}"
-                        data-start-hour="${event.start.toFormat('H')}"
-                        data-start-minute="${event.start.toFormat('mm')}"
-                        data-end-hour="${event.end.toFormat('H')}"
-                        data-end-minute="${event.end.toFormat('mm')}"
-                        style="--border-color: ${event.colors[0]}"
-                        @click="${() => {
-                            this._handleEventClick(event)
-                        }}"
-                    >
-                        ${event.colors.map((color) => {
-                            if (doneColors.indexOf(color) > -1) {
-                                return '';
-                            }
-                            doneColors.push(color);
-                            return html`
-                                <div
-                                    class="additionalColor"
-                                    style="--event-additional-color: ${color}"
-                                ></div>
-                            `
-                        })}
-                        <div class="inner">
-                            <div class="time">
-                                ${event.fullDay ?
-                                    html`${this._language.fullDay}` :
-                                    html`
-                                        ${event.start.toFormat(this._timeFormat)}
-                                        ${event.end ? ' - ' + event.end.toFormat(this._timeFormat) : ''}
-                                    `
-                                }
-                            </div>
-                            ${this._showTitle ?
-                                    html`
-                                        <div class="title">
-                                            ${event.summary}
-                                        </div>
-                                    ` :
-                                    ''
-                            }
-                            ${this._showDescription ?
-                                html`
-                                    <div class="description">
-                                        ${unsafeHTML(event.description)}
-                                    </div>
-                                ` :
-                                ''
-                            }
-                            ${this._showLocation && event.location ?
-                                html`
-                                    <div class="location">
-                                        <ha-icon icon="mdi:map-marker"></ha-icon>
-                                        ${event.location}
-                                    </div>
-                                ` :
-                                ''
-                            }
-                        </div>
-                        ${event.icon ?
+            <div class="segment allday" style="--segment-height: ${this._segmentMaxEvents[-1] || 1}">
+                ${groupedEvents[-1].length > 0 ?
+                    groupedEvents[-1].map((event) => this._renderEvent(event)) :
+                    ''
+                }
+            </div>
+            ${this._daySegments.map((segment, index) => html`
+                <div class="segment" data-segment="${index}" style="--segment-height: ${this._segmentMaxEvents[index] || 1}">
+                    ${groupedEvents[index].length > 0 ?
+                        groupedEvents[index].map((event) => this._renderEvent(event)) :
+                        ''
+                    }
+                </div>
+            `)}
+        `;
+    }
+
+    /**
+     * Render a single event
+     *
+     * @param {Object} event
+     * @returns {Object}
+     */
+    _renderEvent(event) {
+        const doneColors = [event.colors[0]];
+        return html`
+            <div
+                class="event ${event.class}"
+                data-entity="${event.calendars[0]}"
+                data-additional-entities="${event.calendars.join(',')}"
+                data-summary="${event.summary}"
+                data-location="${event.location ?? ''}"
+                data-start-hour="${event.start.toFormat('H')}"
+                data-start-minute="${event.start.toFormat('mm')}"
+                data-end-hour="${event.end.toFormat('H')}"
+                data-end-minute="${event.end.toFormat('mm')}"
+                style="--border-color: ${event.colors[0]}"
+                @click="${() => {
+                    this._handleEventClick(event)
+                }}"
+            >
+                ${event.colors.map((color) => {
+                    if (doneColors.indexOf(color) > -1) {
+                        return '';
+                    }
+                    doneColors.push(color);
+                    return html`
+                        <div
+                            class="additionalColor"
+                            style="--event-additional-color: ${color}"
+                        ></div>
+                    `
+                })}
+                <div class="inner">
+                    <div class="time">
+                        ${event.fullDay ?
+                            html`${this._language.fullDay}` :
                             html`
-                                <div class="icon">
-                                    <ha-icon icon="${event.icon}"></ha-icon>
+                                ${event.start.toFormat(this._timeFormat)}
+                                ${event.end ? ' - ' + event.end.toFormat(this._timeFormat) : ''}
+                            `
+                        }
+                    </div>
+                    ${this._showTitle ?
+                            html`
+                                <div class="title">
+                                    ${event.summary}
                                 </div>
                             ` :
                             ''
-                        }
-                    </div>
-                `
-            })}
-            ${moreEvents ?
-                html`
-                    <div class="more">
-                        ${this._language.moreEvents}
-                    </div>
-                ` :
-                ''
-            }
+                    }
+                    ${this._showDescription ?
+                        html`
+                            <div class="description">
+                                ${unsafeHTML(event.description)}
+                            </div>
+                        ` :
+                        ''
+                    }
+                    ${this._showLocation && event.location ?
+                        html`
+                            <div class="location">
+                                <ha-icon icon="mdi:map-marker"></ha-icon>
+                                ${event.location}
+                            </div>
+                        ` :
+                        ''
+                    }
+                </div>
+                ${event.icon ?
+                    html`
+                        <div class="icon">
+                            <ha-icon icon="${event.icon}"></ha-icon>
+                        </div>
+                    ` :
+                    ''
+                }
+            </div>
         `;
     }
 
@@ -1043,6 +1359,48 @@ export class WeekPlannerCard extends LitElement {
         }
 
         this._days = days;
+
+        // Calculate max events per segment for equal heights
+        if (this._daySegments.length > 0) {
+            this._segmentMaxEvents = this._calculateSegmentMaxEvents();
+            // Force re-render to apply new segment heights
+            this.requestUpdate();
+        }
+    }
+
+    /**
+     * Calculate the maximum number of events in each segment across all days
+     * This is used to ensure equal segment heights across the week
+     *
+     * @returns {Object}
+     */
+    _calculateSegmentMaxEvents() {
+        const maxEvents = {
+            [-1]: 1 // All Day segment - minimum 1 for consistent height
+        };
+
+        // Initialize for each segment with minimum of 1
+        this._daySegments.forEach((segment, index) => {
+            maxEvents[index] = 1;
+        });
+
+        // Count events per segment for each day
+        this._days.forEach(day => {
+            const dayEvents = this._getDayEvents(day);
+            const groupedEvents = this._groupEventsBySegment(dayEvents);
+
+            // Update max for each segment
+            Object.keys(groupedEvents).forEach(segmentIndex => {
+                const count = groupedEvents[segmentIndex].length;
+                const idx = parseInt(segmentIndex, 10);
+                if (count > maxEvents[idx]) {
+                    maxEvents[idx] = count;
+                }
+            });
+        });
+
+        console.log('Week Planner Card - Segment max events:', maxEvents);
+        return maxEvents;
     }
 
     _getWeekDayText(date) {

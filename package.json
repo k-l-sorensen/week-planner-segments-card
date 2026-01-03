@@ -12,7 +12,8 @@
   },
   "scripts": {
     "watch": "parcel watch",
-    "build": "parcel build"
+    "build": "parcel build",
+    "build:custom": "parcel build src/index-custom.js --dist-dir dist && cp dist/week-planner-card.js dist/week-planner-card-custom.js"
   },
   "repository": {
     "type": "git",

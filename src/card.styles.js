@@ -231,6 +231,137 @@ export default css`
         --mdc-icon-size: var(--event-icon-size);
     }
 
+    /* Day Segments Styles - CSS Grid Layout */
+
+    /*
+     * CSS Grid approach ensures perfect alignment between legend labels and day segments.
+     * Grid rows automatically share the same height across all cells in that row.
+     */
+    .container .days-grid-container {
+        --segment-event-height: 50px;
+        display: grid;
+        /* Column 1: legend labels, Columns 2+: day columns */
+        grid-template-columns: var(--segment-legend-width, 80px) repeat(var(--day-count, 7), 1fr);
+        grid-auto-rows: auto;
+        gap: 0 var(--days-spacing);
+        width: 100%;
+    }
+
+    /* All grid cells share common styling */
+    .container .days-grid-container .grid-cell {
+        box-sizing: border-box;
+    }
+
+    /* Legend header cell - empty spacer in grid row 1, column 1 */
+    .container .days-grid-container .legend-header {
+        /* Empty - just reserves space in the grid */
+    }
+
+    /* Day header cells - date + weather */
+    .container .days-grid-container .day-header {
+        position: relative;
+    }
+
+    .container .days-grid-container .day-header .date {
+        position: relative;
+        z-index: 1;
+    }
+
+    .container .days-grid-container .day-header .date .number {
+        font-size: var(--day-date-number-font-size);
+        line-height: var(--day-date-number-line-height);
+    }
+
+    .container .days-grid-container .day-header .date .text {
+        font-size: var(--day-date-text-font-size);
+    }
+
+    .container .days-grid-container .day-header .weather {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+        font-size: var(--weather-temperature-font-size);
+        cursor: pointer;
+    }
+
+    .container .days-grid-container .day-header .weather .icon {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .container .days-grid-container .day-header .weather .icon img {
+        max-width: var(--weather-icon-size);
+        max-height: var(--weather-icon-size);
+    }
+
+    .container .days-grid-container .day-header .weather div.temperature {
+        display: inline-block;
+        margin: 0 5px 0 0;
+        vertical-align: middle;
+    }
+
+    .container .days-grid-container .day-header .weather .temperature:has(.high) .low:before {
+        content: var(--weather-temperature-separator);
+    }
+
+    /* Segment label cells (column 1) */
+    .container .days-grid-container .segment-label {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 5px 0 5px 5px;
+        font-size: 0.8em;
+        color: var(--secondary-text-color, #aaaaaa);
+        border-bottom: 1px solid var(--segment-border-color, var(--divider-color, rgba(255,255,255,0.2)));
+        /* Minimum height based on max events - grid row determines actual height */
+        min-height: calc(var(--segment-event-height, 50px) * var(--segment-height, 1));
+    }
+
+    /* Segment content cells */
+    .container .days-grid-container .segment {
+        border-bottom: 1px solid var(--segment-border-color, var(--divider-color, rgba(255,255,255,0.2)));
+        /* Minimum height based on max events */
+        min-height: calc(var(--segment-event-height, 50px) * var(--segment-height, 1));
+        overflow: hidden;
+    }
+
+    /* Event styling within grid segment cells */
+    .container .days-grid-container .segment .event {
+        margin-bottom: var(--event-spacing);
+        background-color: var(--event-background-color);
+        border-radius: 0 var(--event-border-radius) var(--event-border-radius) 0;
+        font-size: var(--event-font-size);
+        line-height: var(--event-line-height);
+        display: flex;
+        border-left: var(--event-border-width) solid var(--border-color, var(--divider-color, #ffffff));
+        cursor: pointer;
+    }
+
+    .container .days-grid-container .segment .event .additionalColor {
+        width: var(--event-border-width);
+        background-color: var(--event-additional-color);
+    }
+
+    .container .days-grid-container .segment .event .icon {
+        padding: var(--event-padding);
+    }
+
+    .container .days-grid-container .segment .event .inner {
+        flex-grow: 1;
+        padding: var(--event-padding);
+    }
+
+    .container .days-grid-container .segment .event .time {
+        color: var(--secondary-text-color, #aaaaaa);
+        margin: 0 0 3px 0;
+    }
+
+    .container .days-grid-container .segment .event .location {
+        margin: 3px 0 0 0;
+        --mdc-icon-size: var(--event-icon-size);
+    }
+
     .loader {
         position: absolute;
         top: 16px;
@@ -321,6 +452,30 @@ export default css`
         }
         ha-card.compact .container .day {
             --days-columns: var(--days-columns-xs, 2);
+        }
+
+        /* Grid segment layout - mobile: single column, hide legend */
+        ha-card .container .days-grid-container {
+            /* Single column for days only */
+            grid-template-columns: 1fr;
+        }
+
+        /* Hide legend column on mobile */
+        ha-card .container .days-grid-container .legend-header,
+        ha-card .container .days-grid-container .segment-label {
+            display: none;
+        }
+
+        /* Force all day content to column 1 */
+        ha-card .container .days-grid-container .day-header,
+        ha-card .container .days-grid-container .segment {
+            grid-column: 1 !important;
+        }
+
+        /* Remove fixed segment heights on mobile - let them flow naturally */
+        ha-card .container .days-grid-container .segment {
+            min-height: auto;
+            height: auto;
         }
     }
 `;
